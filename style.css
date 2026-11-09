@@ -1,0 +1,62 @@
+
+:root{color-scheme:dark;--ink:#f4f1ff;--neon:#ff2e88;--cyan:#19e3ff;--glass:linear-gradient(180deg,rgba(28,16,54,.72),rgba(12,8,28,.74))}
+html,body{margin:0;height:100%;background:#1a1030;overflow:hidden;font-family:"Rajdhani","Arial Narrow",sans-serif;color:var(--ink);touch-action:none;user-select:none}
+canvas{display:block}
+body>canvas:first-of-type{position:fixed;inset:0;width:100%;height:100%}
+.hud{position:fixed;z-index:2;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);pointer-events:none}
+.panel{background:var(--glass);border:1px solid rgba(255,255,255,.13);border-radius:10px;backdrop-filter:blur(8px)}
+#top-l{top:10px;left:14px;display:flex;flex-direction:column;gap:8px}
+#info{padding:6px 12px;font-size:15px;line-height:1.3}#info span{color:var(--cyan)}
+#mini{width:132px;height:132px;border-radius:50%;border:2px solid rgba(255,255,255,.2);box-shadow:0 0 18px rgba(255,46,136,.35)}
+#top-r{top:10px;right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:auto}
+#q,#tools{display:flex;gap:6px}
+#top-r button{font:700 15px "Rajdhani",sans-serif;color:var(--ink);background:var(--glass);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 12px;cursor:pointer}
+#top-r button:hover{border-color:var(--cyan)}#top-r button.on{background:var(--neon);border-color:var(--neon)}
+#top-r button:focus-visible,#go:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#gauge{right:16px;bottom:10px;width:clamp(150px,30vh,230px);aspect-ratio:1}
+#tach{position:absolute;inset:0;width:100%;height:100%}
+#gcenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:.95;text-shadow:0 0 16px var(--neon)}
+#kmh{font-size:clamp(40px,10vh,84px);font-style:italic;font-weight:700}
+#gcenter span{font-size:clamp(12px,2.2vh,18px);color:var(--cyan)}
+#gear{margin-top:6px;font-style:normal;font-weight:700;font-size:clamp(14px,3vh,24px);border:2px solid var(--neon);border-radius:6px;padding:0 10px}
+#help{left:14px;bottom:12px;font-size:14px;opacity:.8}
+#start{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:rgba(10,6,24,.55);backdrop-filter:blur(6px)}
+#start .card{background:var(--glass);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:22px 30px;text-align:center;max-width:420px}
+#start h1{margin:0;font-size:38px;font-style:italic;text-shadow:0 0 18px var(--neon)}
+#start p{margin:2px 0 12px;color:var(--cyan)}
+#start ul{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;text-align:left;font-size:16px}
+#start b{color:var(--neon)}
+#go{font:700 22px "Rajdhani",sans-serif;color:#fff;background:var(--neon);border:0;border-radius:8px;padding:8px 34px;cursor:pointer;box-shadow:0 0 22px rgba(255,46,136,.6)}
+#start small{display:block;margin-top:8px;opacity:.7}
+#rotate{position:fixed;inset:0;z-index:9;background:#1a1030;display:none;align-items:center;justify-content:center;text-align:center;font-size:24px;padding:24px}
+@media (orientation:portrait){#rotate{display:flex}}
+#start{background:none;backdrop-filter:none;align-items:flex-end;padding-bottom:12px;box-sizing:border-box;pointer-events:none}
+#start .card{pointer-events:auto;padding:12px 26px}
+#pick{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 12px}
+#pick button{font:700 22px Rajdhani,sans-serif;color:var(--ink);background:var(--glass);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:2px 14px;cursor:pointer}
+#pick b{min-width:160px;font-size:24px;color:var(--cyan)}
+#cd{position:fixed;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font:italic 700 clamp(48px,16vh,140px)/1 Rajdhani,sans-serif;text-shadow:0 0 30px var(--neon);pointer-events:none}
+#cd small{font-size:24px;font-style:normal}
+#gauge{right:max(14px,env(safe-area-inset-right));left:auto;transform:none;bottom:calc(clamp(90px,26vh,170px) + 18px);width:clamp(110px,24vh,170px)}
+#help{left:50%;transform:translateX(-50%);top:auto;bottom:8px;white-space:nowrap;font-size:12px}
+#wheel{height:clamp(130px,34vh,230px);background:url(wheel.png) center/contain no-repeat;-webkit-touch-callout:none;position:fixed;z-index:3;left:max(14px,env(safe-area-inset-left));bottom:10px;width:clamp(130px,34vh,230px);touch-action:none;user-select:none;-webkit-user-drag:none;cursor:grab}
+#pedals{position:fixed;z-index:3;right:max(14px,env(safe-area-inset-right));bottom:10px;align-items:flex-end;gap:14px;height:clamp(90px,26vh,170px)}
+#pedals div{height:100%;touch-action:none;user-select:none;-webkit-touch-callout:none;background:center/contain no-repeat;transition:transform .08s,filter .08s}
+#pedals #brk{width:calc(clamp(90px,26vh,170px)*.91);background-image:url(brake.png)}#pedals #gas{width:calc(clamp(90px,26vh,170px)*.72);background-image:url(gas.png)}
+#pedals div.p{transform:scale(.92);filter:brightness(.75)}
+#wheel,#pedals,#gauge{display:none}body.play #wheel{display:block}body.play #pedals{display:flex}body.play #gauge{display:block}
+#go:disabled{opacity:.4;cursor:wait}
+#loading{position:fixed;inset:0;z-index:20;background:#120a24;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:22px}
+#loading .lb{width:min(320px,70vw);height:10px;border-radius:6px;background:rgba(255,255,255,.14);overflow:hidden}
+#loading i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--neon));transition:width .2s}
+#menuBox{display:none;flex-direction:column;align-items:stretch;gap:6px;padding:8px;background:var(--glass);border:1px solid rgba(255,255,255,.18);border-radius:10px;backdrop-filter:blur(8px)}#menuBox.open{display:flex}#menuBox>button{text-align:left}
+
+#lerr{display:none;max-width:min(440px,86vw);text-align:center;font-size:17px;line-height:1.3;color:#ffb3b3}
+#lretry{display:none;font:700 20px Rajdhani,sans-serif;color:#fff;background:var(--neon);border:0;border-radius:8px;padding:6px 26px;cursor:pointer}
+
+/* mashina tanlash: karta ixcham bitta qator (mashinani yopmaydi) */
+#start{padding-bottom:6px}
+#start .card{display:flex;align-items:center;gap:14px;max-width:none;padding:6px 14px}
+#start h1,#start p,#start small{display:none}
+#pick{margin:0;gap:10px}#pick b{min-width:110px;font-size:20px}#pick button{padding:0 12px;font-size:20px}
+#go{font-size:20px;padding:5px 22px}
