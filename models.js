@@ -3,7 +3,7 @@
 const CAR_MODELS=[
   {name:"Mashina 1",file:"mashina.glb",color:0xd01040,flip:false,length:4.4},
   {name:"Nexia",file:"nexia2.glb",color:0x19a0e3,flip:true,length:4.4},
-  {name:"BMW 1",file:"bmw1.glb",color:0xe8e8ee,flip:true,length:4.4},
+  {name:"BMW 1",file:"bmw1.glb",color:0xe8e8ee,flip:false,length:4.4},
   {name:"BMW 2",file:"bmw2.glb",color:0x1f2a6e,flip:false,length:4.4}
 ];
 
