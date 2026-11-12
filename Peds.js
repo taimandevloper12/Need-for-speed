@@ -10,28 +10,34 @@
 // ---- Oynadagi qon sachrashi: ekran ustidagi yarim shaffof canvas, sekin so'nadi ----
 const Blood=(function(){
 "use strict";
-let cv=null,cx=null,a=0,hold=0;
-function fit(){if(!cv)return;cv.width=Math.max(2,innerWidth*.5|0);cv.height=Math.max(2,innerHeight*.5|0);cx=cv.getContext("2d")}
-function init(){cv=document.createElement("canvas");cv.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:0";
-  document.body.appendChild(cv);fit();addEventListener("resize",fit)}
+// Yengil: dog'lar oldindan tayyorlangan 4 ta sprite dan chiziladi (gradient yo'q), canvas past o'lchamda (0.4x),
+// so'nish JS bilan har kadrda emas, CSS transition (GPU) bilan bajariladi.
+let cv=null,cx=null,hold=0,fade=0;const SP=[];
+function fit(){if(!cv)return;cv.width=Math.max(2,innerWidth*.4|0);cv.height=Math.max(2,innerHeight*.4|0);cx=cv.getContext("2d")}
+function init(){
+  cv=document.createElement("canvas");cv.style.cssText="position:fixed;left:0;top:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:0;display:none;will-change:opacity";
+  document.body.appendChild(cv);fit();addEventListener("resize",fit);
+  for(let k=0;k<4;k++){const c=document.createElement("canvas");c.width=c.height=64;const x=c.getContext("2d"),g=x.createRadialGradient(32,32,0,32,32,32);
+    g.addColorStop(0,"rgba(150,8,12,.95)");g.addColorStop(.7,"rgba(105,4,8,.85)");g.addColorStop(1,"rgba(80,2,6,0)");
+    x.fillStyle=g;x.beginPath();x.ellipse(32,32,31,20+k*3,k*.8,0,6.283);x.fill();SP.push(c)}}
 function drop(x,y,r,len){
-  const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,"rgba(150,8,12,.92)");g.addColorStop(.75,"rgba(105,4,8,.85)");g.addColorStop(1,"rgba(80,2,6,0)");
-  cx.fillStyle=g;cx.beginPath();cx.ellipse(x,y,r,r*(.8+Math.random()*.5),Math.random()*3,0,6.283);cx.fill();
-  if(len>0){cx.strokeStyle="rgba(110,5,9,.75)";cx.lineWidth=Math.max(1,r*.45);cx.lineCap="round";cx.beginPath();cx.moveTo(x,y);cx.lineTo(x+(Math.random()-.5)*r,y+len);cx.stroke()}}
+  cx.drawImage(SP[(Math.random()*4)|0],x-r,y-r,r*2,r*2);
+  if(len>0){cx.strokeStyle="rgba(110,5,9,.75)";cx.lineWidth=Math.max(1,r*.4);cx.lineCap="round";cx.beginPath();cx.moveTo(x,y);cx.lineTo(x+(Math.random()-.5)*r,y+len);cx.stroke()}}
 function splat(p){
   if(!cv)init();if(!cx)return;
-  const W=cv.width,H=cv.height,m=Math.min(W,H),n=6+(p*20|0),bx=W*(.3+Math.random()*.4),by=H*(.18+Math.random()*.3);
-  drop(bx,by,m*(.03+.07*p),H*.05*p);   // asosiy zarba dog'i
+  const W=cv.width,H=cv.height,m=Math.min(W,H),n=5+(p*10|0),bx=W*(.3+Math.random()*.4),by=H*(.18+Math.random()*.3);
+  drop(bx,by,m*(.06+.12*p),H*.05*p);   // asosiy zarba dog'i
   for(let i=0;i<n;i++){
     const ang=Math.random()*6.283,d=Math.pow(Math.random(),.7)*m*(.15+.35*p);
-    drop(bx+Math.cos(ang)*d*1.7,by+Math.sin(ang)*d*.9,1.5+Math.random()*(3+9*p),Math.random()<.4?H*(.03+Math.random()*.1)*p:0)}
-  a=1;hold=3+3*p}
+    drop(bx+Math.cos(ang)*d*1.7,by+Math.sin(ang)*d*.9,3+Math.random()*(5+14*p),Math.random()<.4?H*(.03+Math.random()*.1)*p:0)}
+  cv.style.display="block";cv.style.transition="none";cv.style.opacity=typeof camMode!=="undefined"&&camMode===2?1:.8;
+  hold=3+3*p;fade=0}
 function update(dt){
-  if(!cv||a<=0)return;
-  if(hold>0)hold-=dt;else a-=dt/6;
-  if(a<=0){a=0;cx.clearRect(0,0,cv.width,cv.height);cv.style.opacity=0;return}
-  cv.style.opacity=Math.min(1,a)*(typeof camMode!=="undefined"&&camMode===2?1:.75)}
-function clear(){a=0;hold=0;if(cv&&cx){cx.clearRect(0,0,cv.width,cv.height);cv.style.opacity=0}}
+  if(!cv)return;
+  if(hold>0){hold-=dt;if(hold<=0){cv.style.transition="opacity 6s linear";cv.style.opacity=0;fade=6.2}}
+  else if(fade>0){fade-=dt;if(fade<=0){fade=0;cx.clearRect(0,0,cv.width,cv.height);cv.style.display="none"}}}
+function clear(){hold=0;fade=0;if(cv&&cx){cx.clearRect(0,0,cv.width,cv.height);cv.style.transition="none";cv.style.opacity=0;cv.style.display="none"}}
+init();   // oldindan tayyorlanadi: birinchi urilishda hech narsa yaratilmaydi
 return{splat,update,clear}
 })();
 
