@@ -45,7 +45,7 @@ const Buildings=(function(){
     for(const bt of batches){
       const im=new T.InstancedMesh(bt.geo,bt.mat,bt.items.length);
       im.instanceMatrix.setUsage(T.DynamicDrawUsage);im.frustumCulled=false;im.castShadow=false;im.receiveShadow=false;im.count=0;
-      bt.im=im;scene.add(im)}}
+      bt.im=im;CITY.add(im)}}
   // game.js cull() dan keyin: ko'rinadigan binolarning nusxalari instance buferiga yoziladi
   function flush(){
     for(let q=0;q<batches.length;q++){const bt=batches[q],im=bt.im;if(!im)continue;

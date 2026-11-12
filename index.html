@@ -16,6 +16,7 @@
 <div id="loading"><b>Modellar yuklanmoqda</b><div class="lb"><i id="lbar"></i></div><span id="ltxt">0%</span><div id="lerr"></div><button id="lretry">Qayta urinish</button></div>
 <div id="rotate">Telefonni gorizontal holatga buring</div>
 <div id="start"><div class="card"><h1>Mashina tanlash</h1><p>Sichqoncha / barmoq bilan aylantiring</p>
+<div id="mpick"><button id="mprev">◀</button><b id="mname">Shahar</b><button id="mnext">▶</button></div>
 <div id="pick"><button id="prev">◀</button><b id="cname">1-mashina</b><button id="next">▶</button></div>
 <button id="go" disabled>Poygani boshlash</button><small>Ovoz yoqilishi uchun tugmani bosing</small></div></div><div id="cd"></div>
 <div class="hud" id="top-l"><div class="panel" id="info"><span id="pos">Mashina tanlash</span><br><span id="res"></span> · <span id="fps"></span></div><canvas id="mini" width="132" height="132"></canvas></div>
@@ -31,11 +32,11 @@
 (function(){
 var TH="three@0.128.0";
 var LIBS=[
- {n:"three.min.js",chk:function(){return window.THREE},u:["https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js","https://cdn.jsdelivr.net/npm/"+TH+"/build/three.min.js","https://unpkg.com/"+TH+"/build/three.min.js"]},
- {n:"GLTFLoader.js",chk:function(){return window.THREE&&THREE.GLTFLoader},u:["https://cdn.jsdelivr.net/npm/"+TH+"/examples/js/loaders/GLTFLoader.js","https://unpkg.com/"+TH+"/examples/js/loaders/GLTFLoader.js"]},
- {n:"SkeletonUtils.js",chk:function(){return window.THREE&&THREE.SkeletonUtils},u:["https://cdn.jsdelivr.net/npm/"+TH+"/examples/js/utils/SkeletonUtils.js","https://unpkg.com/"+TH+"/examples/js/utils/SkeletonUtils.js"]}
+ {n:"three.min.js",chk:function(){return window.THREE},u:["https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js","https://cdn.jsdelivr.net/npm/"+TH+"/build/three.min.js","https://fastly.jsdelivr.net/npm/"+TH+"/build/three.min.js","https://gcore.jsdelivr.net/npm/"+TH+"/build/three.min.js","https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.min.js","https://unpkg.com/"+TH+"/build/three.min.js"]},
+ {n:"GLTFLoader.js",chk:function(){return window.THREE&&THREE.GLTFLoader},u:["https://cdn.jsdelivr.net/npm/"+TH+"/examples/js/loaders/GLTFLoader.js","https://fastly.jsdelivr.net/npm/"+TH+"/examples/js/loaders/GLTFLoader.js","https://gcore.jsdelivr.net/npm/"+TH+"/examples/js/loaders/GLTFLoader.js","https://unpkg.com/"+TH+"/examples/js/loaders/GLTFLoader.js"]},
+ {n:"SkeletonUtils.js",chk:function(){return window.THREE&&THREE.SkeletonUtils},u:["https://cdn.jsdelivr.net/npm/"+TH+"/examples/js/utils/SkeletonUtils.js","https://fastly.jsdelivr.net/npm/"+TH+"/examples/js/utils/SkeletonUtils.js","https://gcore.jsdelivr.net/npm/"+TH+"/examples/js/utils/SkeletonUtils.js","https://unpkg.com/"+TH+"/examples/js/utils/SkeletonUtils.js"]}
 ];
-var APP=["models.js","engine.js","sky.js","map.js","Garage.js","Buildings.js","StartGirl.js","People.js","cars.js","ui.js","game.js"];
+var APP=["models.js","engine.js","sky.js","map.js","Garage.js","Buildings.js","Maps.js","StartGirl.js","People.js","cars.js","ui.js","Peds.js","game.js"];
 function fail(m){var e=document.getElementById("lerr");e.style.display="block";e.textContent=m;
  var b=document.getElementById("lretry");b.style.display="block";b.onclick=function(){location.reload()}}
 function load(src,ext,ok,timeout){return new Promise(function(res,rej){
@@ -50,8 +51,8 @@ function tryLib(l){var urls=["libs/"+l.n].concat(l.u),p=Promise.reject();
 tryLib(LIBS[0]).then(function(){return Promise.all([tryLib(LIBS[1]),tryLib(LIBS[2])])})
 .then(function(){
  // oddiy skriptlar parallel yuklanadi, lekin tartib bilan bajariladi (async=false)
- return APP.reduce(function(p,f){return p.then(function(){return load(f,0,0,20000)})},Promise.resolve())})
-.catch(function(f){fail("Yuklanmadi: "+(f||"skript")+" — internetni tekshirib, qayta urinib ko'ring.")});
+ return APP.reduce(function(p,f){return p.then(function(){return load(f,0,0,20000).catch(function(){throw f})})},Promise.resolve())})
+.catch(function(f){fail("Yuklanmadi: "+(f||"skript")+(location.protocol==="file:"?" — fayllarni lokal server orqali oching.":/^(three\.min|GLTFLoader|SkeletonUtils)\.js$/.test(f||"")?" — CDN ochilmadi. Faylni libs/ papkaga qo'ying yoki VPN/internetni tekshiring.":" — fayl topilmadi (nomi/papkasini tekshiring)."))});
 })();
 </script>
 

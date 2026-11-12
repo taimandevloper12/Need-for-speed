@@ -38,7 +38,7 @@ const GARAGE=(function(){
   const ga=at(PAD0,0),gg=new T.Group();gg.position.set(ga.x,0,ga.z);gg.rotation.y=ga.h;
   for(const sd of[-1,1]){const p=new T.Mesh(new T.CylinderGeometry(.35,.35,9,8),roofM);p.position.set(sd*(HW+1.2),4.5,0);gg.add(p)}
   const gb=new T.Mesh(new T.BoxGeometry(2*HW+3,2.6,.5),sign("POYGA MAYDONI","#19e3ff"));gb.position.y=9.6;gg.add(gb);
-  scene.add(g,gg);
+  CITY.add(g,gg);
   const sp=at(GS,-18.5);
   return{s:GS,hw:HWd,depth:X1-2.6,PAD0,PAD1,spawn:{x:sp.x,z:sp.z,h:a.h+Math.PI/2},
     tick(now){pt.offset.y=-(now*.45)%1;padM.opacity=.55+.3*Math.sin(now*3)}};

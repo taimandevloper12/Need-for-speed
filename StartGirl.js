@@ -26,6 +26,7 @@ const CFG=Object.assign({
   walkSpeed:0,       // m/s. 0 = klipdan o'lchanadi (root-motion bo'lmasa 1.3)
   spawnOff:6.8, spawnS:4.5, standS:.6,   // paydo bo'lish / to'xtash joyi (chiziqqa nisbatan, yo'l koordinatasida)
   settle:.35, raise:1.1, hold:2.4, drop:.9,  // soniyalar
+  pace:1,            // yurish tezlanishi (1 = klip tezligi)
   hideAfter:30       // o'yinchi chiziqdan shuncha metr o'tgach qiz yashiriladi
 },typeof STARTGIRL!=="undefined"?STARTGIRL:{});
 
@@ -224,7 +225,7 @@ function begin(cb){
   mixer.stopAllAction();if(idleA)idleA.stop();
   walkA.reset();walkA.setEffectiveWeight(1);walkA.timeScale=.45;walkA.paused=false;walkA.play();if(poseA){poseA.reset();poseA.play()}
   dist=0;armW=0;swayT=0;stopI=null;state="walk";stT=tAll=0;
-  tTotal=L/speed+.9+CFG.settle+CFG.raise+CFG.hold+CFG.drop;
+  tTotal=L/(speed*CFG.pace)+.9+CFG.settle+CFG.raise+CFG.hold+CFG.drop;
   inner.position.copy(base);group.position.set(w0.x,0,w0.z);group.rotation.y=pathYaw;group.visible=true;
   return true}
 
@@ -236,13 +237,13 @@ function update(dt,playerS){
   let pf=1,yaw=finalYaw,fire=false,lw=0;
   switch(state){
   case"walk":{
-    lw=1;walkA.timeScale=lerp(.45,1,ease(Math.min(1,stT/.45)));dist+=speed*walkA.timeScale*dt;
+    lw=1;walkA.timeScale=lerp(.45,1,ease(Math.min(1,stT/.45)))*CFG.pace;dist+=speed*walkA.timeScale*dt;
     const rem=L-dist,dr=toRest(walkA.time);
-    if(rem<=speed*dr){stopI={rem0:Math.max(0,rem),d0:dist,dr,Ts:2*dr,restT:(walkA.time+dr)%dur};toState("stop")}
+    if(rem<=speed*dr){stopI={rem0:Math.max(0,rem),d0:dist,dr,Ts:2*dr/CFG.pace,restT:(walkA.time+dr)%dur};toState("stop")}
     pf=clamp(dist/L,0,1);yaw=pathYaw;break}
   case"stop":{
     const k=Math.min(1,stT/stopI.Ts),p=1-(1-k)*(1-k);
-    lw=1-ease(k);walkA.timeScale=1-k;dist=stopI.d0+stopI.rem0*p;pf=clamp(dist/L,0,1);yaw=angLerp(pathYaw,finalYaw,ease(p));
+    lw=1-ease(k);walkA.timeScale=(1-k)*CFG.pace;dist=stopI.d0+stopI.rem0*p;pf=clamp(dist/L,0,1);yaw=angLerp(pathYaw,finalYaw,ease(p));
     if(k>=1){walkA.time=stopI.restT;walkA.timeScale=0;walkA.paused=true;pf=1;yaw=finalYaw;toState("settle");
       if(idleA){idleA.reset();idleA.setEffectiveWeight(1);idleA.play();idleA.crossFadeFrom(walkA,CFG.settle,false)}}
     break}

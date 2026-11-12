@@ -1,27 +1,29 @@
 // ---- Xarita: keskin burilishli ho'l asfalt yo'l, ko'lmaklar, binolar ----
-const HW=8,LINE=153;
+let HW=8,LINE=153;   // let: xarita almashganda Maps.js o'zgartiradi
+const CITY=new T.Group();scene.add(CITY);   // eski shahar xaritasining BARCHA obyektlari shu guruhda (boshqa xarita tanlansa butunlay yashiriladi)
 const GAR_S=60,GAR_HW=7;   // garaj: yo'l bo'ylab joyi (s, metr) va yarim kengligi — Garage.js shuni ishlatadi
 const CP=[[0,-100],[0,100],[0,300],[40,380],[200,400],[330,470],[340,620],[250,700],[120,690],[60,780],[90,900],[230,950],[330,1050],[320,1200],[200,1270],[60,1260],[-30,1350],[-20,1480],[100,1560],[260,1580]].map(a=>new T.Vector3(a[0],0,a[1]));
-const curve=new T.CatmullRomCurve3(CP,false,"centripetal"),n0=Math.round(curve.getLength()/3),STEP=curve.getLength()/n0;
+const curve=new T.CatmullRomCurve3(CP,false,"centripetal"),n0=Math.round(curve.getLength()/3);let STEP=curve.getLength()/n0;
 const P=curve.getSpacedPoints(n0).map((v,i,a)=>{const q=a[Math.min(i+1,a.length-1)],p=a[Math.max(i-1,0)];let tx=q.x-p.x,tz=q.z-p.z;const l=Math.hypot(tx,tz)||1;tx/=l;tz/=l;return{x:v.x,z:v.z,tx,tz,nx:tz,nz:-tx,s:i*STEP,h:Math.atan2(tx,tz)}});
-const FIN=P[P.length-1].s-30;
+let FIN=P[P.length-1].s-30;
 function at(s,off){const f=Math.max(0,Math.min(P.length-1.001,s/STEP)),i=f|0,t=f-i,a=P[i],b=P[i+1],nx=a.nx+(b.nx-a.nx)*t,nz=a.nz+(b.nz-a.nz)*t;
   return{x:a.x+(b.x-a.x)*t+nx*off,z:a.z+(b.z-a.z)*t+nz*off,h:Math.atan2(a.tx+(b.tx-a.tx)*t,a.tz+(b.tz-a.tz)*t)}}
 function nearIdx(i,x,z){let b=1e12,r=i;for(let k=Math.max(0,i-10);k<=Math.min(P.length-1,i+14);k++){const d=(P[k].x-x)**2+(P[k].z-z)**2;if(d<b){b=d;r=k}}return r}
-function ribbon(o1,o2,y,mat,uk){const pos=[],uv=[],nm=[],idx=[];
-  P.forEach((p,i)=>{pos.push(p.x+p.nx*o1,y,p.z+p.nz*o1,p.x+p.nx*o2,y,p.z+p.nz*o2);uv.push(0,p.s*uk,1,p.s*uk);nm.push(0,1,0,0,1,0);if(i){const k=2*i;idx.push(k-2,k,k-1,k-1,k,k+1)}});
+const RCH=[],CH=40;   // yo'l lentalari ~120 m li bo'laklarga bo'lingan: kamera ko'rmagan (frustum) va uzoq/ortda qolgan bo'laklar chizilmaydi (game.js cull)
+function chunkMesh(a,b,mat,fill){const pos=[],uv=[],nm=[],idx=[];
+  for(let i=a;i<=b;i++){fill(P[i],pos,uv,nm);if(i>a){const k=2*(i-a);idx.push(k-2,k,k-1,k-1,k,k+1)}}
   const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(pos,3));g.setAttribute("uv",new T.Float32BufferAttribute(uv,2));g.setAttribute("normal",new T.Float32BufferAttribute(nm,3));g.setIndex(idx);
-  const m=new T.Mesh(g,mat);m.receiveShadow=true;m.frustumCulled=false;scene.add(m);return m}
+  const m=new T.Mesh(g,mat);m.receiveShadow=true;RCH.push({m,x:(P[a].x+P[b].x)/2,z:(P[a].z+P[b].z)/2});CITY.add(m);return m}
+function ribbon(o1,o2,y,mat,uk){
+  for(let a=0;a<P.length-1;a+=CH)chunkMesh(a,Math.min(P.length-1,a+CH),mat,(p,pos,uv,nm)=>{pos.push(p.x+p.nx*o1,y,p.z+p.nz*o1,p.x+p.nx*o2,y,p.z+p.nz*o2);uv.push(0,p.s*uk,1,p.s*uk);nm.push(0,1,0,0,1,0)})}
 // yo'lning faqat bir qismi (i0..i1) uchun lenta — zebra kabi belgilar (decal)
 function strip(i0,i1,o1,o2,y,mat,vlen){const pos=[],uv=[],nm=[],idx=[];
   for(let i=i0;i<=i1;i++){const p=P[i],v=(p.s-P[i0].s)/vlen;pos.push(p.x+p.nx*o1,y,p.z+p.nz*o1,p.x+p.nx*o2,y,p.z+p.nz*o2);uv.push(0,v,1,v);nm.push(0,1,0,0,1,0);if(i>i0){const k=2*(i-i0);idx.push(k-2,k,k-1,k-1,k,k+1)}}
   const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(pos,3));g.setAttribute("uv",new T.Float32BufferAttribute(uv,2));g.setAttribute("normal",new T.Float32BufferAttribute(nm,3));g.setIndex(idx);
-  const m=new T.Mesh(g,mat);m.receiveShadow=true;m.renderOrder=1;scene.add(m);return m}
+  const m=new T.Mesh(g,mat);m.receiveShadow=true;m.renderOrder=1;CITY.add(m);return m}
 // vertikal devor (bordyur yuzi): y0..y1 balandlikda, yo'l o'qidan off masofada
-function wall(off,y0,y1,mat,uk){const pos=[],uv=[],nm=[],idx=[];
-  P.forEach((p,i)=>{pos.push(p.x+p.nx*off,y0,p.z+p.nz*off,p.x+p.nx*off,y1,p.z+p.nz*off);uv.push(p.s*uk,0,p.s*uk,1);nm.push(p.nx,0,p.nz,p.nx,0,p.nz);if(i){const k=2*i;idx.push(k-2,k,k-1,k-1,k,k+1)}});
-  const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(pos,3));g.setAttribute("uv",new T.Float32BufferAttribute(uv,2));g.setAttribute("normal",new T.Float32BufferAttribute(nm,3));g.setIndex(idx);
-  const m=new T.Mesh(g,mat);m.receiveShadow=true;m.frustumCulled=false;scene.add(m);return m}
+function wall(off,y0,y1,mat,uk){
+  for(let a=0;a<P.length-1;a+=CH)chunkMesh(a,Math.min(P.length-1,a+CH),mat,(p,pos,uv,nm)=>{pos.push(p.x+p.nx*off,y0,p.z+p.nz*off,p.x+p.nx*off,y1,p.z+p.nz*off);uv.push(p.s*uk,0,p.s*uk,1);nm.push(p.nx,0,p.nz,p.nx,0,p.nz)})}
 const cnv=(w,h)=>{const c=document.createElement("canvas");c.width=w;c.height=h;return c};
 const tex=(c,rep)=>{const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=ANISO;if(rep)t.encoding=T.sRGBEncoding;return t};
 const angD=(a,b)=>{let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d};
@@ -134,7 +136,7 @@ const FIELD=(function(){const S=512,c=cnv(S,S),x=c.getContext("2d");x.fillStyle=
 wall(HW,.03,.14,CURB,1/4);wall(-HW,.03,.14,CURB,1/4);wall(HW+3.2,0,.14,CURB,1/4);wall(-HW-3.2,0,.14,CURB,1/4);
 ribbon(HW,HW+3.2,.14,SIDE,1/6.4);ribbon(-HW-3.2,-HW,.14,SIDE,1/6.4);
 ribbon(HW+3.2,HW+11,.02,GRASS,1/8);ribbon(-HW-11,-HW-3.2,.02,GRASS,1/8);
-const ground=new T.Mesh(new T.PlaneGeometry(8000,8000),FIELD);ground.rotation.x=-Math.PI/2;ground.position.y=-.35;ground.receiveShadow=true;scene.add(ground);
+const ground=new T.Mesh(new T.PlaneGeometry(8000,8000),FIELD);ground.rotation.x=-Math.PI/2;ground.position.y=-.35;ground.receiveShadow=true;CITY.add(ground);
 const LAMPS=[];   // game.js to'qnashuvni shu ro'yxatdan tekshiradi
 // haqiqiy ko'cha chiroqlari: egilgan qo'l, korpus, linza, yorug' halo va yo'ldagi yorug' dog'
 (function(){const n=Math.floor(P.length/8)*2,dm=new T.Object3D(),mt=new T.MeshStandardMaterial({color:0x3a3d46,metalness:.7,roughness:.45}),
@@ -147,17 +149,27 @@ const LAMPS=[];   // game.js to'qnashuvni shu ro'yxatdan tekshiradi
     const put=(im,ox,y,oy)=>{dm.position.set(bx+dx*ox,y,bz+dz*ox);dm.rotation.set(0,ry,0);dm.updateMatrix();im.setMatrixAt(k,dm.matrix)};
     dm.position.set(bx,4.5,bz);dm.rotation.set(0,0,0);dm.updateMatrix();poleI.setMatrixAt(k,dm.matrix);
     put(armI,1.6,9.0);put(headI,3.1,8.95);put(lensI,3.1,8.8);put(poolI,3.1,.09);hp.push(bx+dx*3.1,8.7,bz+dz*3.1);LAMPS.push({bx,bz,ry,dx,dz,k,i,st:0,ang:0,om:0,fx:0,fz:1,bn:0});k++}}
-  [poleI,armI,headI,lensI,poolI].forEach(m=>{m.count=k;m.frustumCulled=false;scene.add(m)});
+  [poleI,armI,headI,lensI,poolI].forEach(m=>{m.count=k;m.frustumCulled=false;CITY.add(m)});
+  const IMS=[poleI,armI,headI,lensI,poolI],MAS=IMS.map(m=>m.instanceMatrix.array.slice()),NL=k;   // MAS: har chiroq uchun asosiy matritsalar (faqat oynadagilari GPU ga yoziladi)
+  let w0=-1,w1=-1,lDirty=true;
   const hg=new T.BufferGeometry();hg.setAttribute("position",new T.Float32BufferAttribute(hp,3));
-  const halo=new T.Points(hg,new T.PointsMaterial({size:MOBILE?6:9,map:gt,opacity:.6,transparent:true,blending:T.AdditiveBlending,depthWrite:false,color:0xffd29a}));halo.frustumCulled=false;scene.add(halo);
+  const HPM=new Float32Array(hp);
+  const halo=new T.Points(hg,new T.PointsMaterial({size:MOBILE?6:9,map:gt,opacity:.6,transparent:true,blending:T.AdditiveBlending,depthWrite:false,color:0xffd29a}));halo.frustumCulled=false;CITY.add(halo);
   // --- yiqilish animatsiyasi: chiroq butun holda taglik atrofida aylanib yiqiladi, linza/halo/yorug' dog' o'chadi ---
   const AX=new T.Vector3(),B=new T.Matrix4(),M=new T.Matrix4(),Z=new T.Matrix4().makeScale(0,0,0),hpA=hg.attributes.position,fall=[];
   function pose(l){AX.set(l.fz,0,-l.fx);B.makeRotationAxis(AX,l.ang);B.setPosition(l.bx,.1*Math.sin(Math.min(l.ang,1.5)),l.bz);
-    const put=(im,ox,y,rot)=>{dm.position.set(rot?l.dx*ox:0,y,rot?l.dz*ox:0);dm.rotation.set(0,rot?l.ry:0,0);dm.updateMatrix();M.multiplyMatrices(B,dm.matrix);im.setMatrixAt(l.k,M);im.instanceMatrix.needsUpdate=true};
-    put(poleI,0,4.5,0);put(armI,1.6,9.0,1);put(headI,3.1,8.95,1)}
+    const put=(ii,ox,y,rot)=>{dm.position.set(rot?l.dx*ox:0,y,rot?l.dz*ox:0);dm.rotation.set(0,rot?l.ry:0,0);dm.updateMatrix();M.multiplyMatrices(B,dm.matrix);M.toArray(MAS[ii],l.k*16)};
+    put(0,0,4.5,0);put(1,1.6,9.0,1);put(2,3.1,8.95,1);lDirty=true}
   globalThis.lampKnock=(l,fx,fz,om)=>{l.st=1;l.fx=fx;l.fz=fz;l.om=om;l.ang=.001;l.bn=0;
-    lensI.setMatrixAt(l.k,Z);poolI.setMatrixAt(l.k,Z);lensI.instanceMatrix.needsUpdate=poolI.instanceMatrix.needsUpdate=true;
-    hpA.setXYZ(l.k,0,-500,0);hpA.needsUpdate=true;fall.push(l)};
+    Z.toArray(MAS[3],l.k*16);Z.toArray(MAS[4],l.k*16);HPM[l.k*3]=0;HPM[l.k*3+1]=-500;HPM[l.k*3+2]=0;lDirty=true;fall.push(l)};
+  // CHIROQLAR OYNASI: faqat mashina ortida `behind` va oldida `ahead` yo'l nuqtasi ichidagi chiroqlar chiziladi (ortda qolgan va juda uzoqdagilar umuman chizilmaydi).
+  // Chiroqlar yo'l indeksi bo'yicha tartiblangan (k -> i = 4 + 8*(k>>1)), shuning uchun oyna doim bitta uzluksiz oraliq.
+  globalThis.lampWindow=(ci,behind,ahead)=>{
+    const lo=Math.min(NL,Math.max(0,2*Math.ceil((ci-behind-4)/8))),hi=Math.max(lo,Math.min(NL,2*(Math.floor((ci+ahead-4)/8)+1)));
+    if(lo===w0&&hi===w1&&!lDirty)return;
+    w0=lo;w1=hi;lDirty=false;const c=hi-lo;
+    for(let q=0;q<5;q++){const im=IMS[q];im.instanceMatrix.array.set(MAS[q].subarray(lo*16,hi*16));im.count=c;im.instanceMatrix.needsUpdate=true}
+    hpA.array.set(HPM.subarray(lo*3,hi*3));hpA.needsUpdate=true;hg.setDrawRange(0,c)};
   globalThis.lampUpdate=dt=>{for(let i=fall.length-1;i>=0;i--){const l=fall[i];
     l.om+=3.0*(Math.sin(l.ang)+.12)*dt;l.ang+=l.om*dt;
     if(l.ang>=1.5){l.ang=1.5;if(l.om>.8&&typeof lampLand==="function")lampLand(Math.min(1,l.om/4));l.om=-l.om*.28;l.bn++;
@@ -168,8 +180,9 @@ function arch(s,txt,col){const a=at(s,0),g=new T.Group();g.position.set(a.x,0,a.
   for(const sd of[-1,1]){const p=new T.Mesh(new T.CylinderGeometry(.35,.35,9,8),roofM);p.position.set(sd*(HW+1.2),4.5,0);g.add(p)}
   const b=new T.Mesh(new T.BoxGeometry(2*HW+3,2.6,.5),sign(txt,col));b.position.y=9.6;g.add(b);
   const cc=cnv(128,16),cx=cc.getContext("2d");for(let i=0;i<16;i++)for(let j=0;j<2;j++){cx.fillStyle=(i+j)%2?"#fff":"#111";cx.fillRect(i*8,j*8,8,8)}
-  const pg=new T.PlaneGeometry(2*HW,2);pg.rotateX(-Math.PI/2);const l=new T.Mesh(pg,new T.MeshBasicMaterial({map:new T.CanvasTexture(cc)}));l.position.y=.06;g.add(l);scene.add(g)}
+  const pg=new T.PlaneGeometry(2*HW,2);pg.rotateX(-Math.PI/2);const l=new T.Mesh(pg,new T.MeshBasicMaterial({map:new T.CanvasTexture(cc)}));l.position.y=.06;g.add(l);CITY.add(g)}
 arch(LINE,"START","#19e3ff");arch(FIN,"FINISH","#ff2e88");
+const ZEBRAS=[];   // zebra o'tish joylarining yo'l bo'ylab joyi (s, metr) — Peds.js shu yerdan odamlarni o'tkazadi
 // ===== ZEBRA o'tish joylari (faqat to'g'ri qismlarda, eskirgan bo'yoq) =====
 (function(){const c=cnv(512,64),x=c.getContext("2d");x.fillStyle="rgba(235,235,230,.92)";for(let i=0;i<15;i++)x.fillRect(i*34+1,0,17,64);
   for(let i=0;i<420;i++)x.clearRect(rnd()*512,rnd()*64,2+rnd()*10,2+rnd()*12);
@@ -179,7 +192,7 @@ arch(LINE,"START","#19e3ff");arch(FIN,"FINISH","#ff2e88");
   let next=150+rnd()*60;
   for(let i=20;i<P.length-12;i++){const s0=P[i].s;if(s0<next)continue;
     if(Math.abs(s0-LINE)<30||Math.abs(s0-FIN)<30||Math.abs(turn(i))>.03||Math.abs(turn(i+3))>.03)continue;
-    strip(i,i+1,-HW+.6,HW-.6,.045,zm,P[i+1].s-P[i].s);next=s0+170+rnd()*130}})();
+    strip(i,i+1,-HW+.6,HW-.6,.045,zm,P[i+1].s-P[i].s);ZEBRAS.push(s0);next=s0+170+rnd()*130}})();
 
 // ===== KESKIN BURILISHLARDA CHEVRON (strelka) BELGILARI — burilishning tashqi tomonida =====
 (function(){const mkT=flip=>{const c=cnv(256,128),x=c.getContext("2d");x.fillStyle="#101010";x.fillRect(0,0,256,128);x.fillStyle="#f3c20f";x.fillRect(6,6,244,116);
@@ -192,7 +205,7 @@ arch(LINE,"START","#19e3ff");arch(FIN,"FINISH","#ff2e88");
   for(let i=10;i<P.length-10;i++){if(i%6!==2)continue;const t=turn(i);if(Math.abs(t)<.38)continue;
     const p=P[i],sd=t>0?-1:1,off=sd*(HW+4.6),g=new T.Group();g.position.set(p.x+p.nx*off,0,p.z+p.nz*off);g.rotation.y=p.h+Math.PI;
     const pl=new T.Mesh(plate,t>0?ML:MR);pl.position.y=1.9;pl.castShadow=false;const po=new T.Mesh(pole,pm);po.position.set(0,1.2,-.06);po.castShadow=false;
-    g.add(pl,po);scene.add(g)}})();
+    g.add(pl,po);CITY.add(g)}})();
 
 // (daraxtlar olib tashlandi)
 
@@ -211,7 +224,7 @@ for(let i=12;i<P.length-8;i+=18){const p=P[i];
     const mk=()=>{lot(g,off,0,w,d,bh);g.traverse(o=>{o.castShadow=false;o.receiveShadow=false});
       const sf=new T.Mesh(new T.PlaneGeometry(d,3.8),pick(SF));sf.position.set(off-sd*(w/2+.06),2.2,0);sf.rotation.y=-sd*Math.PI/2;g.add(sf)};
     if(typeof BUILDING_MODELS==="undefined"||!BUILDING_MODELS.length)mk();
-    scene.add(g);blocks.push({g,i,r:300,lot:{sd,w,d,off},mk,s:new T.Sphere(new T.Vector3(p.x+p.nx*off,70,p.z+p.nz*off),120)})}}
+    CITY.add(g);blocks.push({g,i,r:300,lot:{sd,w,d,off},mk,s:new T.Sphere(new T.Vector3(p.x+p.nx*off,70,p.z+p.nz*off),120)})}}
 
 // uzoq qator: shahar panoramasi uchun balandroq binolar (tuman ichida ko'rinadi)
 function freeFar(x,z,i){for(let k=0;k<P.length;k+=2){if(Math.abs(k-i)<30)continue;if((P[k].x-x)**2+(P[k].z-z)**2<2500)return false}return true}
@@ -221,4 +234,4 @@ for(let i=20;i<P.length-8;i+=26){const p=P[i];
     const bh=30+Math.pow(rnd(),1.5)*115,g=new T.Group();g.position.set(p.x,0,p.z);g.rotation.y=p.h;
     const mk=()=>{lot(g,off,0,w,d,bh);g.traverse(o=>{o.castShadow=false;o.receiveShadow=false})};
     if(typeof BUILDING_MODELS==="undefined"||!BUILDING_MODELS.length)mk();
-    scene.add(g);blocks.push({g,i,r:520,far:1,mk,s:new T.Sphere(new T.Vector3(p.x+p.nx*off,70,p.z+p.nz*off),170)})}}
+    CITY.add(g);blocks.push({g,i,r:520,far:1,mk,s:new T.Sphere(new T.Vector3(p.x+p.nx*off,70,p.z+p.nz*off),170)})}}

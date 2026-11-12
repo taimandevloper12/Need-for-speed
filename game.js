@@ -23,14 +23,18 @@ function step(dt){
 // qat'iy qadamli fizika (120 Hz): to'qnashuvlar FPS ga bog'liq emas
 const PH=1/120;let phAcc=0,phSp=0;
 function physics(dt){phAcc+=dt;let n=0;
-  while(phAcc>=PH&&n<8){phSp=step(PH);if(st==="race"||st==="count")carHit(PH);lampHit(PH);phAcc-=PH;n++}
+  while(phAcc>=PH&&n<8){phSp=step(PH);if(st==="race"||st==="count")carHit(PH);lampHit(PH);if(st==="race")Peds.hit();phAcc-=PH;n++}
   if(n===8)phAcc=0;return phSp}
 
 // culling: blocks outside the camera view are switched off
 const fr=new T.Frustum(),pj=new T.Matrix4();
-function cull(){camera.updateMatrixWorld();pj.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);fr.setFromProjectionMatrix(pj);
+function cull(){if(!CITY.visible)return;   // boshqa xarita tanlangan: shahar umuman chizilmaydi
+  camera.updateMatrixWorld();pj.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);fr.setFromProjectionMatrix(pj);
   for(const b of blocks){const dx=b.s.center.x-px,dz=b.s.center.z-pz,R=b.r||300,v=b.i>ci-8&&dx*dx+dz*dz<R*R&&fr.intersectsSphere(b.s);b.g.visible=v;b.vis=v}
-  Buildings.flush()}
+  for(const c of RCH){const dx=c.x-px,dz=c.z-pz;c.m.visible=dx*dx+dz*dz<620*620}   // yo'l/trotuar/maysazor bo'laklari: uzoqdagilari chizilmaydi, qolganini frustum o'zi kesadi
+  Buildings.flush();
+  // chiroqlar: ortda qolganlari va juda uzoqdagilari chizilmaydi (poygada ortda ~15 m, oldinda ~300 m)
+  lampWindow(ci,st==="race"||st==="done"||st==="count"?LAMP_VIEW.behind:LAMP_VIEW.behindIntro,LAMP_VIEW.ahead)}
 // camera, sound, interface
 let camMode=0,AC=null,eng=null,muted=false,wasGas=0,prevSp=0,fpsN=0,fpsT=0;
 const CAMS=[{d:4.4,v:.008,h:1.75,l:4,ly:.95,f:56,n:"Yaqin"},{d:8.5,v:.015,h:3.4,l:8,ly:1.3,f:62,n:"Uzoq"},{d:-1,v:0,h:1.05,l:30,ly:.7,f:74,n:"Bamper"}];
@@ -39,7 +43,7 @@ const txt=(e,v)=>{v=""+v;if(e._t!==v){e._t=v;e.textContent=v}};   // faqat o'zga
 function setCam(){camMode=(camMode+1)%3;$("camName").textContent=CAMS[camMode].n}
 function toggleSnd(){muted=!muted;$("btnSnd").textContent=muted?"Ovoz: oʻchiq":"Ovoz: yoqiq"}
 function fullscreen(){try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}}
-function initAudio(){if(AC)return;
+function initAudio(){loadScreams();if(AC)return;
   AC=new(window.AudioContext||window.webkitAudioContext)();AC.resume();
   const comp=AC.createDynamicsCompressor(),mst=AC.createGain();mst.gain.value=.7;comp.connect(mst);mst.connect(AC.destination);
   const sh=AC.createWaveShaper(),cv=new Float32Array(256);for(let i=0;i<256;i++)cv[i]=Math.tanh((i/128-1)*3);sh.curve=cv;
@@ -91,6 +95,24 @@ function clangSnd(p){if(!eng||muted)return;const t=AC.currentTime,v=Math.min(1,.
     og.gain.setValueAtTime(.5*a*v,t);og.gain.exponentialRampToValueAtTime(.001,t+.9-i*.1);os.connect(og);og.connect(o);os.start(t);os.stop(t+1)});
   const th=AC.createOscillator(),tg=AC.createGain();th.type="sine";th.frequency.setValueAtTime(90,t);th.frequency.exponentialRampToValueAtTime(35,t+.2);tg.gain.setValueAtTime(.7*v,t);tg.gain.exponentialRampToValueAtTime(.001,t+.25);th.connect(tg);tg.connect(o);th.start(t);th.stop(t+.3);
   burst(.25*v,3000,.12)}
+// odam bilan urilish: tana "gup" + kiyim/go'sht shapaloqlashi + kapot/oyna metall "tum" + (kuchli urilsa) suyak qarsillashi. p: 0..1
+function thudSnd(p){if(!eng||muted)return;const t=AC.currentTime,v=Math.min(1,.35+p*.65),o=eng.comp;
+  const th=AC.createOscillator(),tg=AC.createGain();th.type="sine";th.frequency.setValueAtTime(120,t);th.frequency.exponentialRampToValueAtTime(38,t+.18);
+  tg.gain.setValueAtTime(1.0*v,t);tg.gain.exponentialRampToValueAtTime(.001,t+.26);th.connect(tg);tg.connect(o);th.start(t);th.stop(t+.3);
+  burst(.55*v,700,.09);burst(.25*v,2200,.05);
+  const mo=AC.createOscillator(),mg=AC.createGain();mo.type="triangle";mo.frequency.setValueAtTime(240*(.9+Math.random()*.2),t);mo.frequency.exponentialRampToValueAtTime(95,t+.14);
+  mg.gain.setValueAtTime(.35*v,t);mg.gain.exponentialRampToValueAtTime(.001,t+.2);mo.connect(mg);mg.connect(o);mo.start(t);mo.stop(t+.24);
+  if(p>.45)for(let k=0;k<3;k++){const dt=k*.022+Math.random()*.015,s=AC.createBufferSource();s.buffer=eng.nb;const b=AC.createBiquadFilter();b.type="bandpass";b.frequency.value=1800+Math.random()*1800;b.Q.value=3;
+    const g=AC.createGain();g.gain.setValueAtTime(.001,t+dt);g.gain.linearRampToValueAtTime(.7*v,t+dt+.002);g.gain.exponentialRampToValueAtTime(.001,t+dt+.03);s.connect(b);b.connect(g);g.connect(o);s.start(t+dt,Math.random()*1.5,.05)}}
+// odam yerga tushganda: past "gup" + sirpanish shovqini
+function bodyLandSnd(p){if(!eng||muted)return;const t=AC.currentTime,v=Math.min(1,.3+p*.7),o=eng.comp,th=AC.createOscillator(),tg=AC.createGain();
+  th.type="sine";th.frequency.setValueAtTime(90,t);th.frequency.exponentialRampToValueAtTime(34,t+.2);tg.gain.setValueAtTime(.8*v,t);tg.gain.exponentialRampToValueAtTime(.001,t+.24);
+  th.connect(tg);tg.connect(o);th.start(t);th.stop(t+.28);burst(.4*v,450,.16)}
+// odam qichqirig'i: girl.glb -> girl_scream.mp3, man.glb -> man_scream.mp3 (mashina urganda). Birinchi chaqirilganda yuklanadi, so'ng nusxa bilan ijro etiladi
+const SCREAMS={girl:"girl_scream.mp3",man:"man_scream.mp3"},scrA={};
+function loadScreams(){for(const k in SCREAMS)if(!scrA[k]){const a=new Audio(SCREAMS[k]);a.preload="auto";scrA[k]=a}}
+function screamSnd(kind,p){if(muted)return;loadScreams();const src=scrA[kind]||scrA.man;if(!src)return;
+  const a=src.cloneNode();a.volume=Math.min(1,.55+(p||0)*.45);const r=a.play();if(r&&r.catch)r.catch(()=>{})}
 function lampLand(p){clangSnd(p)}
 let lampCd=0;
 function lampHit(dt){lampCd-=dt;const R=1.05,O=1.25,pr=.22,pf=Math.sin(h),pc_=Math.cos(h);
@@ -149,12 +171,17 @@ function hud(sp,dt){
     mx.restore();mx.fillStyle="#ff2e88";mx.beginPath();mx.moveTo(66,54);mx.lineTo(72,74);mx.lineTo(66,70);mx.lineTo(60,74);mx.closePath();mx.fill()}
   fpsN++;fpsT+=dt;if(fpsT>.5){const f=Math.round(fpsN/fpsT);txt(elFps,f+" FPS");adaptRes(f);fpsN=0;fpsT=0}}
 $("btnCam").onclick=setCam;$("btnSnd").onclick=toggleSnd;$("btnFs").onclick=fullscreen;
-function go(){if(st!=="select"||LD.done<LD.total)return;initAudio();$("start").style.display="none";document.body.classList.add("play");st="intro";pl.s=0;pl.v=0;ais.forEach(e=>{e.s=4;e.v=0;e.fin=0})}
+function go(){if(st!=="select"||LD.done<LD.total||mapBusy)return;initAudio();$("start").style.display="none";document.body.classList.add("play");st="intro";pl.s=0;pl.v=0;ais.forEach(e=>{e.s=4;e.v=0;e.fin=0})}
 $("go").onclick=go;
-addEventListener("keydown",e=>{if(e.code==="KeyC")setCam();else if(e.code==="KeyM")toggleSnd();else if(e.code==="KeyF")fullscreen();else if(e.code==="KeyR"&&st==="done")again();else if(st==="select"&&(e.code==="ArrowLeft"||e.code==="ArrowRight"))setSel(sel+(e.code==="ArrowRight"?1:-1));else if(e.code==="Enter"&&$("start").style.display!=="none")go()});
+// BAMPER kamerasini jonli sozlash (faqat Bamper rejimida): T/G oldinga-orqaga, Y/H balandlik, U/J chapga-o'ngga, I/K pastga-tepaga qarash
+const TUNE={KeyT:["d",-.05],KeyG:["d",.05],KeyY:["h",.03],KeyH:["h",-.03],KeyU:["x",.03],KeyJ:["x",-.03],KeyI:["ly",.4],KeyK:["ly",-.4]};
+function tuneCam(code){const t=TUNE[code],k=camMode===2&&CAR_MODELS[sel].bumper;if(!t||!k)return false;
+  k[t[0]]=Math.round((k[t[0]]+t[1])*1000)/1000;
+  const s="bumper:{d:"+k.d+",h:"+k.h+",ly:"+k.ly+",x:"+k.x+"}";$("camName").textContent="Bamper "+s;console.log(CAR_MODELS[sel].name,s);return true}
+addEventListener("keydown",e=>{if(tuneCam(e.code))return;if(e.code==="KeyC")setCam();else if(e.code==="KeyM")toggleSnd();else if(e.code==="KeyF")fullscreen();else if(e.code==="KeyR"&&st==="done")again();else if(st==="select"&&(e.code==="ArrowLeft"||e.code==="ArrowRight"))setSel(sel+(e.code==="ArrowRight"?1:-1));else if(e.code==="Enter"&&$("start").style.display!=="none")go()});
 addEventListener("pointerdown",()=>{if(AC&&AC.state==="suspended")AC.resume();if(st==="done"&&clock.elapsedTime-doneAt>1.2)again()});   // finishdan keyin ekranni bosish = qayta boshlash
 let camBlend=1;const camFrom={p:new T.Vector3(),q:new T.Quaternion()};
-let st="select",sel=0,aiIdx=1,hf=0,oy=.7,op=.18,RR=7.5,drag=0,lx0=0,ly0=0,ci=0,tc=0,t0=0,pfin=0,afin=0,doneAt=0;const pl={s:0,v:0},TG=LINE-3.5;
+let st="select",sel=0,aiIdx=1,hf=0,oy=.7,op=.18,RR=7.5,drag=0,lx0=0,ly0=0,ci=0,tc=0,t0=0,pfin=0,afin=0,doneAt=0,mapBusy=false;let TG=LINE-3.5;const pl={s:0,v:0};
 // 4 ta raqib: [yo'lak (start joyi), tezlik m/s, faza]. O'yinchi -3.4 da turadi, hammasi bir qatorda
 const ais=[[-6.3,48,0],[0,45,1.7],[3.4,42,3.1],[6.3,39,4.6]].map(([l0,spd,ph],k)=>({s:0,v:0,l0,spd,ph,fin:0,k}));
 const cloneCache={};
@@ -165,8 +192,16 @@ function getAiCar(k){const n=CAR_MODELS.length,m=(sel+1+k)%n;let used=(m===sel?1
   return c}
 function hideClones(){for(const k in cloneCache)cloneCache[k].visible=false}
 function setSel(i){const n=CAR_MODELS.length;sel=(i+n)%n;aiIdx=(sel+1)%n;$("cname").textContent=CAR_MODELS[sel].name}
-function again(){StartGirl.reset();camBlend=1;document.body.classList.remove("play");st="select";pfin=afin=0;$("cd").textContent="";$("start").style.display="flex"}
+function again(){StartGirl.reset();Peds.reset();camBlend=1;document.body.classList.remove("play");st="select";pfin=afin=0;$("cd").textContent="";$("start").style.display="flex"}
 $("prev").onclick=()=>setSel(sel-1);$("next").onclick=()=>setSel(sel+1);
+// xarita tanlash: "Shahar" yoki .glb xarita (sky.glb). Tanlangach poyga shu yerda bo'ladi; yuklanguncha "Poygani boshlash" o'chiq turadi
+function setMap(i){const n=Maps.count;i=(i+n)%n;if(mapBusy||st!=="select"||i===Maps.cur)return;
+  const prev=Maps.cur,goB=$("go"),goTxt="Poygani boshlash";mapBusy=true;goB.disabled=true;$("mname").textContent=Maps.name(i);
+  const fin=ok=>{mapBusy=false;TG=LINE-3.5;goB.textContent=goTxt;goB.disabled=LD.done<LD.total;if(!ok)$("mname").textContent=Maps.name(Maps.cur)};
+  Maps.select(i,p=>{goB.textContent="Xarita "+Math.round(p*100)+"%"},(ok,msg)=>{
+    if(!ok){console.warn(msg);goB.textContent="Yuklanmadi: "+Maps.file(i);setTimeout(()=>fin(false),2200)}else fin(true)});
+  if(!mapBusy)return;goB.textContent="Xarita yuklanmoqda…"}
+$("mprev").onclick=()=>setMap(Maps.cur-1);$("mnext").onclick=()=>setMap(Maps.cur+1);
 const cv=renderer.domElement;cv.addEventListener("pointerdown",e=>{drag=1;lx0=e.clientX;ly0=e.clientY});addEventListener("pointerup",()=>drag=0);
 addEventListener("pointermove",e=>{if(drag&&st==="select"){oy-=(e.clientX-lx0)*.009;op=Math.max(-.05,Math.min(1.2,op+(e.clientY-ly0)*.006));lx0=e.clientX;ly0=e.clientY}});
 cv.addEventListener("wheel",e=>{RR=Math.max(4.5,Math.min(14,RR+e.deltaY*.01))});
@@ -175,7 +210,7 @@ function startRace(){if(st==="race"||st==="done")return;
   if(st==="girl"){camFrom.p.copy(camera.position);camFrom.q.copy(camera.quaternion);camBlend=0}
   st="race";t0=clock.elapsedTime;$("cd").textContent="START!"}
 function put2(o,s,off){const a=at(s,off);o.position.set(a.x,0,a.z);o.rotation.set(0,a.h,0);return a}
-function arrive(e,dt){const d=TG-e.s;if(d>.05){e.v=Math.min(24,Math.max(2,Math.sqrt(10*d)));e.s+=Math.min(d,e.v*dt)}else{e.v=0;e.s=TG}}
+function arrive(e,dt){const d=TG-e.s;if(d>.05){e.v=Math.min(60,Math.max(5,Math.sqrt(40*d)));e.s+=Math.min(d,e.v*dt)}else{e.v=0;e.s=TG}}
 const ACS=[];function fillAcs(){for(let k=0;k<ais.length;k++)ACS[k]=getAiCar(k);return ACS}   // har kadrda yangi massiv yaratilmaydi
 function setFov(f){if(Math.abs(camera.fov-f)>.01){camera.fov=f;camera.updateProjectionMatrix()}}
 function setCd(v){const e=$("cd");if(e.textContent!==v)e.textContent=v}
@@ -187,6 +222,7 @@ function sunSnap(){const a=px*_sr.x+pz*_sr.z,b=px*_su.x+pz*_su.z,da=Math.round(a
 function frame(){
   const dt=Math.min(clock.getDelta(),.05),now=clock.elapsedTime,pc=getCar(sel),acs=fillAcs();let sp=0,free=true;
   if(st!=="race")key.gas=key.brake=key.left=key.right=key.hand=0;if(st==="done")key.brake=1;
+  {const nn=camMode===2&&(st==="count"||st==="race"||st==="done")?.1:.3;if(camera.near!==nn){camera.near=nn;camera.updateProjectionMatrix()}}   // salon kamerasi: rul va panel kesilib ketmasin
   if(st==="select"){
     hideCars();hideClones();pc.visible=true;const a=put2(pc,TG,0);px=a.x;pz=a.z;h=a.h;ci=Math.round(TG/STEP);if(!drag)oy+=dt*.35;
     camera.position.set(a.x+Math.sin(oy)*Math.cos(op)*RR,.8+Math.sin(op)*RR,a.z+Math.cos(oy)*Math.cos(op)*RR);camera.lookAt(a.x,.3,a.z);setFov(45)}
@@ -208,13 +244,14 @@ function frame(){
     StartGirl.update(dt,P[ci].s);
     tailM.color.setHex(key.brake?0xff3a3a:0x8a0e18);
     camH+=(h-camH)*Math.min(1,dt*4);
-    const CM=CAMS[camMode],hh=camMode===2?h:camH,dist=CM.d+sp*CM.v,cfx=Math.sin(hh),cfz=Math.cos(hh);
-    camera.position.set(px-cfx*dist,CM.h+sp*.004,pz-cfz*dist);
-    camera.lookAt(px+cfx*CM.l,CM.ly,pz+cfz*CM.l);
+    const CM=CAMS[camMode],bo=camMode===2&&CAR_MODELS[sel].bumper,hh=camMode===2?h:camH,dist=(bo?bo.d:CM.d)+sp*CM.v,cfx=Math.sin(hh),cfz=Math.cos(hh),
+      ox=bo?Math.cos(h)*bo.x:0,oz=bo?-Math.sin(h)*bo.x:0;   // chap tomon = (cos h, -sin h)
+    camera.position.set(px-cfx*dist+ox,(bo?bo.h:CM.h+sp*.004),pz-cfz*dist+oz);   // salon: tezlikda balandlik o'zgarmaydi
+    camera.lookAt(px+cfx*CM.l+ox,bo?bo.ly:CM.ly,pz+cfz*CM.l+oz);
     if(camBlend<1){camBlend=Math.min(1,camBlend+dt/1.3);const bw=1-camBlend*camBlend*(3-2*camBlend);camera.position.lerp(camFrom.p,bw);camera.quaternion.slerp(camFrom.q,bw)}  // intro kamerasidan gameplay kamerasiga silliq qaytish
-    const nf=camera.fov+((CM.f+Math.min(sp,85)*.1)-camera.fov)*Math.min(1,dt*3);if(Math.abs(nf-camera.fov)>.004){camera.fov=nf;camera.updateProjectionMatrix()}}
+    const nf=camera.fov+((CM.f+(bo?Math.min(sp,85)*.015:Math.min(sp,85)*.1))-camera.fov)*Math.min(1,dt*3);if(Math.abs(nf-camera.fov)>.004){camera.fov=nf;camera.updateProjectionMatrix()}}
   if(!free){const pp=P[ci].s;let c=1;for(let k=0;k<ais.length;k++)if(ais[k].s>pp)c++;txt(elPos,c+"/"+(ais.length+1)+" · "+Math.min(100,Math.round(pp/FIN*100))+"%")}
-  sunSnap();skyTick(now);GARAGE.tick(now);lampUpdate(dt);
+  sunSnap();skyTick(now);if(CITY.visible){GARAGE.tick(now);lampUpdate(dt);Peds.update(dt,now)}
   spotP.position.set(px+Math.sin(h)*2,.9,pz+Math.cos(h)*2);spotT.position.set(px+Math.sin(h)*30,0,pz+Math.cos(h)*30);uiTick(dt);cull();hud(sp,dt);
   renderer.render(scene,camera);requestAnimationFrame(frame)}
 CAR_MODELS.forEach((_,i)=>getCar(i));StartGirl.load(CAR_MODELS.length,lp);Folks.load(CAR_MODELS.length+1,lp);Buildings.load(CAR_MODELS.length+2,lp);setSel(0);applySize();frame();

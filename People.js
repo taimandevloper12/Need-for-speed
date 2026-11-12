@@ -72,8 +72,23 @@ function make(kind){
   const clip=s.anims.find(c=>/walk/i.test(c.name)&&c.duration>.3)||null;
   if(clip&&bones.length){const c=clip.clone();c.tracks=c.tracks.filter(t=>!/\.position$/.test(t.name));   // joyida yurish (siljishni o'yin beradi)
     mixer=new T.AnimationMixer(root);act=mixer.clipAction(c);act.setLoop(T.LoopRepeat,Infinity)}
+  // RAGDOLL: urilganda qo'l-oyoq, tana va bosh suyaklari har tomonga buriladi (suyak nomlari topilmasa — o'sha qism o'tkazib yuboriladi)
+  const rg=[],_e=new T.Euler(),_qq=new T.Quaternion();
+  {const add=(b,rx,ry,rz,k)=>{if(b&&!rg.some(r=>r.b===b))rg.push({b,i:bones.indexOf(b),rx,ry,rz,k,tx:0,ty:0,tz:0,ph:Math.random()*6.28})};
+   for(const sd of["left","right"]){
+     const arm=findArm(bones,sd);if(arm){add(arm.upper,1.6,1.2,1.6,1);add(arm.fore,1.8,.3,.3,1.3);add(arm.hand,.6,.5,.6,1.6)}
+     add(bb(bones,sd,/(upleg|thigh|upperleg)$/),1.2,.6,.7,1);
+     add(bb(bones,sd,/(leg|calf|shin|lowerleg)$/,/upleg|upperleg|thigh/),1.6,.15,.15,1.3);
+     add(bb(bones,sd,/foot$/),.6,.3,.3,1.5)}
+   bones.filter(b=>/spine/.test(nm(b))).forEach(b=>add(b,.35,.25,.35,.8));
+   add(bb(bones,"",/neck$/),.5,.5,.5,1);add(bb(bones,"",/head$/),.5,.5,.5,1.2);
+   if(rg.length<4)console.warn("[Folks] ragdoll: suyaklar kam topildi ("+rg.length+"), "+kind+" modelining suyak nomlarini tekshiring")}
   let walking=false;const ph=Math.random()*6.28;
   return{group,
+    pose0(){bones.forEach((b,i)=>b.quaternion.copy(standQ[i]))},
+    ragdoll(power){const sm=()=>(Math.random()<.5?-1:1)*(.45+Math.random()*.55);for(const r of rg){r.tx=sm()*r.rx*power;r.ty=sm()*r.ry*power;r.tz=sm()*r.rz*power}},   // har bo'g'in aniq (nolga yaqin emas) buklanadi
+    limp(t,amp){const k=Math.min(1,t*7),k2=k*k*(3-2*k),w=amp*Math.max(0,1-t/2.2);   // t: urilgandan beri vaqt; tez buriladi, so'ng so'nuvchi silkinish
+      for(const r of rg){const wb=Math.sin(t*(9+r.k*3)+r.ph)*.35*w*r.k;_e.set(r.tx*k2+wb,r.ty*k2+wb*.6,r.tz*k2+wb*.8);_qq.setFromEuler(_e);r.b.quaternion.copy(standQ[r.i]).multiply(_qq)}},
     get walking(){return walking},
     walk(on){if(on===walking)return;walking=on;
       if(on){if(act){act.reset();act.play()}}

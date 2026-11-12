@@ -1,10 +1,11 @@
 // Mashina modellari ro'yxati. Yangi mashina qo'shish uchun shu yerga qator qo'shing (.glb fayl shu papkada bo'lsin).
 // flip:true — model teskari qarasa; length — mashina uzunligi (metr)
+// bumper:{d,h,ly,x} — Bamper kamerasini shu mashina uchun sozlash: d = mashina markazidan oldinga masofa (manfiy = oldinda, qiymat kattalashsa kamera orqaga, salonga yaqinlashadi), h = balandlik, ly = qayerga qarash balandligi, x = chapga siljish. h va ly yozilmasa — mashina o'z balandligidan (H) avtomatik hisoblanadi (ko'z = H*0.72).
 const CAR_MODELS=[
-  {name:"Mashina 1",file:"mashina.glb",color:0xd01040,flip:false,length:4.4},
-  {name:"Nexia",file:"nexia2.glb",color:0x19a0e3,flip:true,length:4.4},
-  {name:"BMW 1",file:"bmw1.glb",color:0xe8e8ee,flip:false,length:4.4},
-  {name:"BMW 2",file:"bmw2.glb",color:0x1f2a6e,flip:false,length:4.4}
+  {name:"Lamborgini",file:"mashina.glb",color:0xd01040,flip:true,length:4.4,bumper:{d:-0.35,h:0.7,ly:0.72,x:0.28}},
+  {name:"Nexia",file:"nexia2.glb",color:0x19a0e3,flip:true,length:4.4,bumper:{d:.03,h:.98,ly:.7,x:.35}},
+  {name:"BMW 1",file:"bmw1.glb",color:0xe8e8ee,flip:false,length:4.4,bumper:{d:-.05,h:1.0,ly:.72,x:.35}},
+  {name:"BMW 2",file:"bmw2.glb",color:0x1f2a6e,flip:false,length:4.4,bumper:{d:-0.05,h:0.9,ly:0.12,x:0.36}}
 ];
 
 // Start girl modeli — mashina .glb lari bilan BIR papkada (HTML yonida) turadi. Fayl nomi boshqacha bo'lsa shu yerga yozing.
@@ -13,7 +14,7 @@ const STARTGIRL={
   height:1.7,       // qiz bo'yi (metr)
   walkClip:"",      // bo'sh = nomida "walk" bo'lgan klip; modelda boshqacha nom bo'lsa shu yerga yozing
   arm:"right",      // qaysi qo'lini ko'taradi: "right" | "left"
-  hold:2.4,         // qo'l tepada turish vaqti (s)
+  hold:.9,pace:1.8,settle:.2,raise:.6,drop:.4,spawnOff:5,spawnS:3,         // qo'l tepada turish vaqti (s)
   debug:false       // true = konsolga topilgan suyak/klip ma'lumotlarini chiqaradi
 };
 
@@ -29,3 +30,20 @@ const BUILDING_MODELS=[
   {file:"b1.glb",flip:false,maxH:70,minH:25,maxW:34,maxD:44},
   {file:"b2.glb",flip:false,maxH:70,minH:40,maxW:40,maxD:46}
 ];
+
+// ===== XARITALAR =====
+// Birinchi xarita ("Shahar") — map.js dagi eski shahar. Qolganlari .glb fayl: tanlansa poyga SHU yerda bo'ladi, shahar (yo'l, binolar, chiroqlar, garaj) butunlay yashiriladi.
+// file — xarita .glb (mashina .glb lari bilan BIR papkada) | scale — modelni kattalashtirish (1 = asl) | y — qo'shimcha balandlik siljishi (m)
+// route — poyga yo'li nuqtalari [[x,z],...] (xarita o'zgarmas dunyo koordinatalarida, scale/siljishdan KEYIN). Yozilmasa — modelning eng uzun tomoni bo'ylab to'g'ri yo'l.
+// hw — yo'lning yarim kengligi (m) | len — yo'l uzunligi (m, faqat route yozilmasa) | line — start chizig'i (yo'l bo'ylab, m) | fog — tuman zichligi (yozilmasa shahar qiymati)
+// autoY:false — balandlikni avtomatik sozlashni o'chiradi (aks holda yo'l ostidagi sirt avtomatik y=0 ga tushiriladi) | hills:false — uzoqdagi tog' siluetlarini yashiradi
+const MAPS=[
+  {name:"Shahar",city:true}
+];
+// Eski shahar xaritasida chiroqlar oynasi (yo'l nuqtalari, 1 nuqta ~ 3 m): ortda `behind` dan ortiq va oldinda `ahead` dan uzoq chiroqlar chizilmaydi.
+// Poyga paytida ortda 5 nuqta (~15 m), oldinda 100 nuqta (~300 m). Boshlanish/tanlash kameralarida ortga ko'proq (behindIntro) ko'rinadi.
+// Trotuarda yuradigan odamlar (Peds.js). Hammasi ixtiyoriy — yozilmasa shu qiymatlar ishlatiladi.
+// count — bir vaqtda nechta odam (yozilmasa: kompyuter 10, mobil 6) | seeDist — shundan uzoqdagi odam chizilmaydi | crossChance / crossTrig — zebradan o'tish ehtimoli / mashina qancha (m) yaqinlashganda yo'lga chiqishi | hardSpeed — shu tezlikdan (m/s) tez urilsa odam uchib ketadi, sekinroq bo'lsa oynaga yiqiladi (13 m/s ~ 47 km/h)
+// hoodY / hoodZ / hoodTilt — oynaga yiqilgan odam: tana markazi balandligi (m), oldinga masofa (m), qiyalik (gradus) — mashina modeliga qarab sozlang
+const PEDS={hardSpeed:13,hoodY:1.15,hoodZ:.6,hoodTilt:65};
+const LAMP_VIEW={behind:5,ahead:80,behindIntro:20};

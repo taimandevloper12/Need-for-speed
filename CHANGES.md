@@ -10,3 +10,11 @@
 **HTML** — preconnect va defer.
 
 Qilinmadi (sabab): mk() lazy — RNG ketma-ketligi o'zgarib butun xarita tuzilishi o'zgarib ketardi.
+
+# Xarita tanlash + chiroq culling
+**Maps.js (yangi)** — xarita tanlash: "Shahar" (eski) va models.js dagi MAPS ro'yxati (sky.glb). Boshqa xarita tanlansa poyga shu yerda bo'ladi, shahar (CITY guruhi: yo'l, binolar, chiroqlar, garaj, yer) butunlay yashiriladi va cull() o'chadi. Yo'l (P/STEP/FIN/LINE/HW) xarita almashganda qayta quriladi; .glb birinchi tanlovda yuklanadi, keyin keshdan.
+**models.js** — MAPS (file, scale, y, route, hw, line, fog, autoY, hills) va LAMP_VIEW (behind/ahead).
+**map.js** — barcha shahar obyektlari CITY guruhida; HW/LINE/STEP/FIN `let`. Chiroqlar: asosiy matritsalar xotirada (MAS), GPU ga faqat oynadagi chiroqlar yoziladi (lampWindow): poygada ortda ~15 m dan, oldinda ~300 m dan uzoqdagilar chizilmaydi (halo ham).
+**game.js** — setMap(), TG `let`, cull() faqat shahar xaritasida, chiroq oynasi cull() ichida.
+**index.html / style.css** — xarita tanlash tugmalari (◀ Shahar ▶), Maps.js ulandi.
+**Garage.js / Buildings.js** — scene.add -> CITY.add.

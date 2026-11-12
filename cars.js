@@ -22,7 +22,11 @@ function loadCar(i){const d=CAR_MODELS[i],g=carCache[i];
     root.traverse(o=>{if(o.isMesh){o.castShadow=true;if(o.material&&"envMapIntensity" in o.material)o.material.envMapIntensity=1.3}});
     const bx=new T.Box3(),sz=new T.Vector3();bx.setFromObject(root);bx.getSize(sz);if(sz.x>sz.z)root.rotation.y=Math.PI/2;if(d.flip)root.rotation.y+=Math.PI;
     bx.setFromObject(root);bx.getSize(sz);root.scale.multiplyScalar((d.length||4.4)/Math.max(sz.z,.001));bx.setFromObject(root);const c=bx.getCenter(new T.Vector3());
-    root.position.x-=c.x;root.position.z-=c.z;root.position.y-=bx.min.y;
+    root.position.x-=c.x;root.position.z-=c.z;root.position.y-=bx.min.y;bx.setFromObject(root);bx.getSize(sz);d.H=sz.y;
+    // kokpit (Bamper) kamerasi: ko'z balandligi shu mashinaning o'z balandligidan (H) olinadi; models.js da yozilgan qiymatlar ustun turadi
+    const bm=d.bumper||(d.bumper={});if(bm.d===undefined)bm.d=.15;if(bm.h===undefined)bm.h=Math.round(d.H*.72*1000)/1000;
+    if(bm.ly===undefined)bm.ly=Math.round((bm.h-.28)*1000)/1000;if(bm.x===undefined)bm.x=.35;
+      // mashina balandligi: salon kamerasi ko'z balandligini avtomatik oladi
     g.add(hd);lp(i,1,1)}catch(e){console.error(e);lp(i,0,0,d.file+" tayyorlanmadi")}},
     xhr=>{if(xhr.total)lp(i,xhr.loaded/xhr.total*.95)},
     e=>{console.warn(d.file+" yuklanmadi",e);lp(i,0,0,d.file+" topilmadi")})}
